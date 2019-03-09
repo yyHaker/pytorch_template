@@ -1,7 +1,6 @@
 # PyTorch Template
 pytorch template is to make building a ML model better and faster. 
 
-
 ## project directory
 
 * datas  ：datas file
@@ -25,6 +24,6 @@ pytorch template is to make building a ML model better and faster.
 
 
 ## reference resources
-[1] !(Pytorch NLP Template Project)[https://github.com/MrTuo/pytorch-nlp-template]
+[1] [Pytorch NLP Template Project](https://github.com/MrTuo/pytorch-nlp-template)
 
-[2]  !(PyTorch Template Project)[https://github.com/victoresque/pytorch-template]
+[2]  [PyTorch Template Project](https://github.com/victoresque/pytorch-template)
