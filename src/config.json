@@ -1,0 +1,47 @@
+{
+    "name": "Commonsense QA",
+    "n_gpu": 1,
+    "arch": {
+        "type": "PathModel",
+        "args": {
+            "requires_grad": false,
+            "vocab_file": ".cache/word2id.pt"
+        }
+    },
+    "data_loader": {
+        "type": "CommonSenseQA_Paths",
+        "args":{
+            "data_path": "datas/",
+            "train_file": "train_rand_split4.json",
+            "eval_file": "dev_rand_split4.json",
+            "test_file": "test_rand_split4.json",
+            "pretrain_emd_file": "numberbatch-en-17.06.txt",
+            "vocab_file": ".cache/word2id.pt",
+            "train_batch_size": 64,
+            "eval_batch_size": 16,
+            "shuffle": true,
+            "lower": true,
+            "tokenizer": "spacy",
+            "device": "cuda"
+        }
+    },
+    "optimizer": {
+        "type": "Adam",
+        "args":{
+            "lr": 0.0001,
+            "weight_decay": 1e-4
+        }
+    },
+    "loss": {
+        "type":"cross_entropy"
+    },
+    "metrics": "ACC",
+    "trainer": {
+        "epochs": 50,
+        "save_dir": "./data/saved/",
+        "save_freq": 10,
+        "verbosity": 2,
+        "monitor": "val_ACC",
+        "monitor_mode": "max"
+    }
+}
