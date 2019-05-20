@@ -1,20 +1,13 @@
 {
-    "name": "Commonsense QA",
+    "name": "NLP Task",
     "n_gpu": 1,
-    "arch": {
-        "type": "PathModel",
-        "args": {
-            "requires_grad": false,
-            "vocab_file": ".cache/word2id.pt"
-        }
-    },
     "data_loader": {
-        "type": "CommonSenseQA_Paths",
+        "type": "data_loader",
         "args":{
             "data_path": "datas/",
-            "train_file": "train_rand_split4.json",
-            "eval_file": "dev_rand_split4.json",
-            "test_file": "test_rand_split4.json",
+            "train_file": "train.json",
+            "eval_file": "dev.json",
+            "test_file": "test.json",
             "pretrain_emd_file": "numberbatch-en-17.06.txt",
             "vocab_file": ".cache/word2id.pt",
             "train_batch_size": 64,
@@ -23,6 +16,14 @@
             "lower": true,
             "tokenizer": "spacy",
             "device": "cuda"
+        }
+    },
+     "arch": {
+        "type": "YourModel",
+        "args": {
+            "word_dim": 300,
+            "hidden_size": 300,
+            "dropout":0.2
         }
     },
     "optimizer": {
@@ -37,11 +38,14 @@
     },
     "metrics": "ACC",
     "trainer": {
+        "train_infor": " ",
         "epochs": 50,
-        "save_dir": "./data/saved/",
-        "save_freq": 10,
-        "verbosity": 2,
+        "save_dir": "./result/saved/",
+        "log_step": 100,
         "monitor": "val_ACC",
         "monitor_mode": "max"
+    },
+        "visualization": {
+        "log_dir": "logs"
     }
 }

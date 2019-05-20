@@ -10,7 +10,7 @@
 import json
 import os
 import spacy
-import codecs
+import jieba
 
 
 spacy_en = spacy.load('en')
@@ -18,6 +18,10 @@ spacy_en = spacy.load('en')
 
 def tokenizer(text):
     return [tok.text for tok in spacy_en.tokenizer(text.strip())]
+
+
+def CN_tokenizer(text):
+    return list(jieba.cut(text))
 
 
 def dumpObj(obj, file):
@@ -29,19 +33,6 @@ def dumpObj(obj, file):
     """
     with open(file, 'w') as f:
         json.dump(obj, f)
-
-
-def write_vocab(word2id, file):
-    """
-    write vocab to txt file.
-    :param word2id:
-    :param file: 'txt file'
-    :return:
-    """
-    with codecs.open(file, 'w', encoding="utf-8") as f:
-        for w in word2id.keys():
-            f.write(w)
-            f.write("\n")
 
 
 def loadObj(file):

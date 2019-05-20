@@ -1,11 +1,10 @@
 # PyTorch Template
-pytorch template is to make building a ML model better and faster. 
+pytorch template is to make building a deep learning  model better and faster. 
 
 ## project directory
 
 * datas  ：datas file
 * files    ：files
-* papers ：  some papers
 * src       
     * data_loader  ：  data loaders
     * model  ：models 
@@ -18,8 +17,17 @@ pytorch template is to make building a ML model better and faster.
     * test.py  ：test file(run)
 * readme.md  ：project instructions file
 
-
-
+## Develop Requirements
+- OS: Ubuntu 16.04 LTS (64bit)
+- GPU: Nvidia Titan Xp
+- Language: Python 3.6.2.
+- Pytorch: **0.4.1**
+- nltk==3.2.4
+- tensorboardX==0.8
+- torchtext==0.3.1
+- jieba==0.39
+- spacy==2.0.11
+- gensim==3.5.0
 
 
 

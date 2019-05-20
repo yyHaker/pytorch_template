@@ -13,37 +13,24 @@ import json
 import os
 
 import torch
-from myutils import Logger
+import logging
+import random
+import numpy as np
 
-import data_loader.data_loader as module_data
-import model.model as module_arch
-import loss.loss as module_loss
-import metric.metric as module_metric
+import data_loader as module_data
+import model as module_arch
+import loss as module_loss
+import metric as module_metric
 from trainer import Trainer
-
-
-def get_instance(module, name, config, *args):
-    """get a instance of the object according to the params.
-    :param module: module
-    :param name: class name
-    :param config: config json file
-    :param args: position params
-    :return:
-    """
-    return getattr(module, config[name]['type'])(*args, **config[name]['args'])
 
 
 def main(config, resume):
     """main project"""
-    # get logger
-    train_logger = Logger()
-
     # setup data_loader instances
-    data_loader = get_instance(module_data, 'data_loader', config)
+    data_loader = getattr(module_data, 'data_loader', config['data_loader']['type'])(config)
 
     # build model architecture
-    model = get_instance(module_arch, 'arch', config, data_loader.vocab_vectors)
-    model.summary()
+    model = getattr(module_arch, 'arch', config['arch']['type'])(config, data_loader.vocab_vectors)
 
     # get function handles of loss
     loss = getattr(module_loss, config['loss']['type'])
@@ -53,14 +40,13 @@ def main(config, resume):
 
     # build optimizer, learning rate scheduler. delete every lines containing lr_scheduler for disabling scheduler
     trainable_params = filter(lambda p: p.requires_grad, model.parameters())
-    optimizer = get_instance(torch.optim, 'optimizer', config, trainable_params)
+    optimizer = getattr(torch.optim, 'optimizer', config['optimizer']['type'])(trainable_params, **config['optimizer']['args'])
     # lr_scheduler = get_instance(torch.optim.lr_scheduler, 'lr_scheduler', config, optimizer)
 
     trainer = Trainer(model, loss, metrics, optimizer,
                       resume=resume,
                       config=config,
-                      data_loader=data_loader,
-                      logger=train_logger)
+                      data_loader=data_loader)
     trainer.train()
 
 
@@ -83,4 +69,22 @@ if __name__ == '__main__':
     else:
         raise AssertionError("Configuration file need to be specified. Add '-c config.json', for example.")
 
+    main(config, args.resume)
+
+    # prpare logger
+    logger = logging.getLogger('NLP Task')
+    logger.setLevel(logging.INFO)
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(logging.INFO)
+    console_handler.setFormatter(formatter)
+    logger.addHandler(console_handler)
+
+    # set random seed
+    random.seed(args.seed)
+    np.random.seed(args.seed)
+    torch.manual_seed(args.seed)
+
+    logger.info('Run with config:')
+    logger.info(json.dumps(config, indent=True))
     main(config, args.resume)

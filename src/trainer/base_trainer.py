@@ -7,14 +7,15 @@
 @file: base_trainer.py
 @time: 2019/3/9 15:45
 """
-import datetime
 import json
 import logging
 import math
 import os
+import fnmatch
 
 import torch
 from myutils import ensure_dir
+from tensorboardX import SummaryWriter
 
 
 class BaseTrainer(object):
@@ -25,7 +26,7 @@ class BaseTrainer(object):
     You only need to inherit BaseTrainer and realise the _train_epoch method.
     """
 
-    def __init__(self, model, loss, metrics, optimizer, resume, config, logger=None):
+    def __init__(self, model, loss, metrics, optimizer, resume, config):
         """
         :param model:
         :param loss:
@@ -36,12 +37,12 @@ class BaseTrainer(object):
         :param logger: if given , use your own logger.
         """
         self.config = config
-        self.train_logger = logger
-        self.logger = logging.getLogger(self.__class__.__name__)
+        self.logger = logging.getLogger(config["name"])
 
         # setup GPU device if available, move model into configured device
         self.device, device_ids = self._prepare_device(config['n_gpu'])
         self.model = model.to(self.device)
+
         # data parrallel
         if len(device_ids) > 1:
             self.model = torch.nn.DataParallel(model, device_ids=device_ids)
@@ -60,19 +61,20 @@ class BaseTrainer(object):
         assert self.monitor_mode in ['min', 'max', 'off']
         self.monitor_best = math.inf if self.monitor_mode == 'min' else -math.inf
         self.start_epoch = 1
+        self.log_step = config['trainer']['log_step']
 
         # setup directory for checkpoint saving
-        start_time = datetime.datetime.now().strftime('%m%d_%H%M%S')
-        self.checkpoint_dir = os.path.join(config['trainer']['save_dir'], config['name'], start_time)
-        # setup visualization writer instance
-        # writer_dir = os.path.join(config['visualization']['log_dir'], config['name'], start_time)
-        # self.writer = WriterTensorboardX(writer_dir, self.logger, config['visualization']['tensorboardX'])
+        self.checkpoint_dir = os.path.join(config['trainer']['save_dir'], config['arch']['type'], config["trainer"]['train_infor'])
 
         # Save configuration file into checkpoint directory:
         ensure_dir(self.checkpoint_dir)
         config_save_path = os.path.join(self.checkpoint_dir, 'config.json')
         with open(config_save_path, 'w') as f:
             json.dump(config, f, indent=4, sort_keys=False)
+
+        # setup visualization writer instance
+        writer_dir = os.path.join(self.checkpoint_dir, config['visualization']['log_dir'])
+        self.writer = SummaryWriter(log_dir=writer_dir)
 
         # if resume from checkpoint
         if resume:
@@ -115,13 +117,6 @@ class BaseTrainer(object):
                 else:  # others
                     log[key] = value
 
-            # print logged information to the screen
-            if self.train_logger is not None:
-                self.train_logger.add_entry(log)
-                # if epoch % self.verbosity == 0:
-                #     for key, value in log.items():
-                #         self.logger.info('    {:15s}: {}'.format(str(key), value))
-
             # evaluate model performance according to configured metric, save best checkpoint as model_best
             best = False
             if self.monitor_mode != 'off':
@@ -136,14 +131,11 @@ class BaseTrainer(object):
                               + "for performance monitoring. model_best checkpoint won\'t be updated."
                         self.logger.warning(msg)
 
-            # how often epoch to save check_point
-            # if epoch % self.save_freq == 0:
-            #     self._save_checkpoint(epoch, save_best=best)
             # only save the best
             if best:
                 self._save_best_model(epoch)
         # training done
-        self.logger.info("training is done, the best val ACC is: {}".format(self.monitor_best))
+        self.logger.info("training is done, the best val {} is: {}".format(self.monitor, self.monitor_best))
 
     def _train_epoch(self, epoch):
         """
@@ -179,9 +171,14 @@ class BaseTrainer(object):
             'monitor_best': self.monitor_best,
             'config': self.config
         }
-        best_path = os.path.join(self.checkpoint_dir, 'model_best_acc_{}.pth'.format(self.monitor_best))
+        # delete history best model
+        for file in os.listdir(self.checkpoint_dir):
+            if fnmatch.fnmatch(file, 'model_best_{}_*.pth'.format(self.monitor)):
+                os.remove(os.path.join(self.checkpoint_dir, file))
+        # save current best model
+        best_path = os.path.join(self.checkpoint_dir, 'model_best_{}_{}.pth'.format(self.monitor, self.monitor_best))
         torch.save(state, best_path)
-        self.logger.info("Saving current best: {} ...".format('model_best_acc{}.pth'.format(self.monitor_best)))
+        self.logger.info("Saving current best: {} ...".format('model_best_{}_{}.pth'.format(self.monitor, self.monitor_best)))
 
     def _save_checkpoint(self, epoch, save_best=False):
         """
